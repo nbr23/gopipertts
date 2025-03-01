@@ -4,14 +4,17 @@ RUN apk add --no-cache curl \
         && \
     curl -sL https://huggingface.co/rhasspy/piper-voices/resolve/main/voices.json?download=true -o voices.json
 
-FROM golang:alpine AS builder
+FROM --platform=${BUILDOS}/${BUILDARCH} golang:alpine AS builder
 WORKDIR /app
 COPY go.* .
 RUN go mod download
 COPY *.go .
-RUN go build -o gin .
 
-FROM alpine as piper
+RUN GOOS=linux GOARCH=arm64 go build -trimpath -o gopipertts-linux-arm64
+RUN GOOS=linux GOARCH=amd64 go build -trimpath -o gopipertts-linux-amd64
+RUN GOOS=linux GOARCH=arm GOARM=7 go build -trimpath -o gopipertts-linux-armv7
+
+FROM alpine AS piper
 ARG TARGETARCH
 ARG TARGETVARIANT
 ARG BINARY_PIPER_VERSION='1.2.0'
@@ -23,6 +26,9 @@ RUN apk add --no-cache curl tar gzip \
 
 
 FROM debian:latest
+ARG TARGETARCH
+ARG TARGETOS
+ARG TARGETVARIANT
 ENV VOICES_PATH="/voices"
 ENV VOICES_JSON_PATH="/app/voices.json"
 
@@ -37,6 +43,6 @@ RUN apt update && apt install -y --no-install-recommends \
 
 COPY --from=piper /piper /usr/share
 COPY --from=voices /voices/voices.json $VOICES_JSON_PATH
-COPY --from=builder /app/gin .
+COPY --from=builder /app/gopipertts-${TARGETOS}-${TARGETARCH}${TARGETVARIANT} /app/gopipertts
 
-CMD ["/app/gin"]
+CMD ["/app/gopipertts"]
