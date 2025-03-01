@@ -22,9 +22,10 @@ You can then navigate to `http://localhost:8080/` to access the webui and start 
 
 ### Process text into speech
 
-`POST /api/tts` will convert the text passed into a wav file.
+`/api/tts` will convert the text passed into a wav file.
+This endpoint accepts POST and GET requests.
 
-This endpoint expects a json body like the following:
+POST requests expect a json body like the following:
 ```json
 {
     "text": "Hello World",
@@ -34,7 +35,7 @@ This endpoint expects a json body like the following:
 }
 ```
 
-`speed`, `voice` and `speaker` can also be passed as url query parameters.
+GET requests expect the parameters `text` and optionally `speed`, `voice` and `speaker` to be passed as url query parameters.
 
 Some usage examples:
 
@@ -43,11 +44,15 @@ curl -X POST -H "Content-Type: application/json" -d '{"text": "happy text to spe
 ```
 
 ```bash
-curl -X POST -H "Content-Type: application/json" -d '{"text": "happy text to speaching!", "voice":"en_US-amy-low", "speed": 1.1}' 'http://localhost:8080/api/tts' | mpv -
+curl -X POST -H "Content-Type: application/json" -d '{"text": "happy text to speaching!", "voice":"en_US-amy-low", "speed": 1.2}' 'http://localhost:8080/api/tts' | mpv -
 ```
 
 ```bash
-curl -X POST -H "Content-Type: application/json" -d '{"text": "happy text to speaching!"}' 'http://localhost:8080/api/tts?speed=1.1&voice=en_US-amy-low' | mpv -
+curl -X POST -H "Content-Type: application/json" -d '{"text": "happy text to speaching!"}' 'http://localhost:8080/api/tts?speed=1.2&voice=en_US-amy-low' | mpv -
+```
+
+```bash
+curl 'http://localhost:8080/api/tts?speed=1.1&voice=en_US-amy-low&text=Happy%20text%20to%20speeching' | mpv -
 ```
 
 Leverages [piper](https://github.com/rhasspy/piper) for TTS and voices from [rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices/tree/main)

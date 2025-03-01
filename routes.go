@@ -42,38 +42,50 @@ func writeWavStreamHttpHeaders(c *gin.Context, sampleRate int, channels int, bit
 	return nil
 }
 
+func getTTSStrParameter(c *gin.Context, postValue string, key string, defaultValue string) string {
+	value := postValue
+	if value == "" {
+		value = c.Query(key)
+	}
+	if value == "" {
+		value = defaultValue
+	}
+	return value
+}
+
+func getTTSFloatParameter(c *gin.Context, postValue float64, key string, defaultValue float64) float64 {
+	value := postValue
+	if value == 0 {
+		parsedValue, err := strconv.ParseFloat(c.Query(key), 64)
+		if err == nil {
+			value = parsedValue
+		}
+	}
+	if value == 0 {
+		value = defaultValue
+	}
+	return value
+}
+
 func ttsHandler(voices *Voices) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var ttsRequest TTSRequest
 
-		voiceName := c.Query("voice")
-		if voiceName == "" {
-			voiceName = "en_US-amy-low"
-		}
-		speakerName := c.Query("speaker")
-
-		speed, err := strconv.ParseFloat(c.Query("speed"), 64)
-		if err != nil {
-			speed = 1.0
+		if c.Request.Method == "POST" {
+			if err := c.ShouldBindJSON(&ttsRequest); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request, JSON body required"})
+				return
+			}
 		}
 
-		if err := c.ShouldBindJSON(&ttsRequest); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
+		voiceName := getTTSStrParameter(c, ttsRequest.Voice, "voice", "en_US-amy-low")
+		speakerName := getTTSStrParameter(c, ttsRequest.Speaker, "speaker", "")
+		speed := getTTSFloatParameter(c, ttsRequest.Speed, "speed", 1.0)
+		text := getTTSStrParameter(c, ttsRequest.Text, "text", "")
 
-		if ttsRequest.Text == "" {
+		if text == "" {
 			c.String(http.StatusBadRequest, "text query parameter is required")
 			return
-		}
-		if ttsRequest.Voice != "" {
-			voiceName = ttsRequest.Voice
-		}
-		if ttsRequest.Speaker != "" {
-			speakerName = ttsRequest.Speaker
-		}
-		if ttsRequest.Speed != 0 {
-			speed = ttsRequest.Speed
 		}
 
 		voice, err := getVoiceDetails(voices, voiceName)
@@ -97,7 +109,7 @@ func ttsHandler(voices *Voices) gin.HandlerFunc {
 			return
 		}
 
-		err = streamTTS(c, voiceName, speaker, ttsRequest.Text, int(sampleRate), channels, bitsPerSample)
+		err = streamTTS(c, voiceName, speaker, text, int(sampleRate), channels, bitsPerSample)
 		if err != nil {
 			log.Printf("Error streaming TTS: %v", err)
 			c.String(http.StatusInternalServerError, "Error streaming TTS")

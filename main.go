@@ -28,6 +28,7 @@ func main() {
 	r.GET("/", homeHandler)
 	r.GET("/api/voices", voicesHandler(&voices))
 	r.POST("/api/tts", ttsHandler(&voices))
+	r.GET("/api/tts", ttsHandler(&voices))
 
 	fmt.Printf("Listening and serving HTTP on :%s\n", port)
 	if err := r.Run(":" + port); err != nil {
