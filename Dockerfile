@@ -10,9 +10,7 @@ COPY go.* .
 RUN go mod download
 COPY *.go .
 
-RUN GOOS=linux GOARCH=arm64 go build -trimpath -o gopipertts-linux-arm64
-RUN GOOS=linux GOARCH=amd64 go build -trimpath -o gopipertts-linux-amd64
-RUN GOOS=linux GOARCH=arm GOARM=7 go build -trimpath -o gopipertts-linux-armv7
+RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} GOARM=${TARGETVARIANT} go build -trimpath -o gopipertts
 
 FROM alpine AS piper
 ARG TARGETARCH
@@ -43,6 +41,6 @@ RUN apt update && apt install -y --no-install-recommends \
 
 COPY --from=piper /piper /usr/share
 COPY --from=voices /voices/voices.json $VOICES_JSON_PATH
-COPY --from=builder /app/gopipertts-${TARGETOS}-${TARGETARCH}${TARGETVARIANT} /app/gopipertts
+COPY --from=builder /app/gopipertts /app/gopipertts
 
 CMD ["/app/gopipertts"]
