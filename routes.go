@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type TTSRequest struct {
+type TTSRequestInput struct {
 	Text    string  `json:"text"`
 	Voice   string  `json:"voice"`
 	Speaker string  `json:"speaker"`
@@ -69,19 +69,19 @@ func getTTSFloatParameter(c *gin.Context, postValue float64, key string, default
 
 func ttsHandler(voices *Voices) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var ttsRequest TTSRequest
+		var ttsRequestInput TTSRequestInput
 
 		if c.Request.Method == "POST" {
-			if err := c.ShouldBindJSON(&ttsRequest); err != nil {
+			if err := c.ShouldBindJSON(&ttsRequestInput); err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request, JSON body required"})
 				return
 			}
 		}
 
-		voiceName := getTTSStrParameter(c, ttsRequest.Voice, "voice", "en_US-amy-low")
-		speakerName := getTTSStrParameter(c, ttsRequest.Speaker, "speaker", "")
-		speed := getTTSFloatParameter(c, ttsRequest.Speed, "speed", 1.0)
-		text := getTTSStrParameter(c, ttsRequest.Text, "text", "")
+		voiceName := getTTSStrParameter(c, ttsRequestInput.Voice, "voice", "en_US-amy-low")
+		speakerName := getTTSStrParameter(c, ttsRequestInput.Speaker, "speaker", "")
+		speed := getTTSFloatParameter(c, ttsRequestInput.Speed, "speed", 1.0)
+		text := getTTSStrParameter(c, ttsRequestInput.Text, "text", "")
 
 		if text == "" {
 			c.String(http.StatusBadRequest, "text query parameter is required")
