@@ -4,8 +4,10 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type TTSRequestInput struct {
@@ -53,6 +55,47 @@ func getTTSStrParameter(c *gin.Context, postValue string, key string, defaultVal
 	return value
 }
 
+func ttsGetStreamHandler(voices *Voices, r map[string]TTSRequest) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		streamId := c.Param("streamId")
+		ttsRequest, ok := r[streamId]
+		if !ok {
+			c.String(http.StatusNotFound, "Stream not found")
+			return
+		}
+		if ttsRequest.Expires.Before(time.Now()) {
+			delete(r, streamId)
+			c.String(http.StatusNotFound, "Stream not found")
+			return
+		}
+		piperToWavStream(c, ttsRequest.Request, voices)
+	}
+}
+
+func ttsPostStreamHandler(r map[string]TTSRequest) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		streamId := uuid.New().String()
+
+		ttsRequestInput, err := getTTSRequestInput(c)
+		if err != nil {
+			c.String(http.StatusBadRequest, "Invalid request")
+		}
+
+		if ttsRequestInput.Text == "" {
+			c.String(http.StatusBadRequest, "text query parameter is required")
+			return
+		}
+		r[streamId] = TTSRequest{
+			Request: ttsRequestInput,
+			Expires: time.Now().Add(time.Duration(STREAM_EXPIRATION_MINUTES) * time.Minute),
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"streamId": streamId,
+			"expires":  r[streamId].Expires,
+		})
+	}
+}
+
 func getTTSFloatParameter(c *gin.Context, postValue float64, key string, defaultValue float64) float64 {
 	value := postValue
 	if value == 0 {
@@ -84,6 +127,40 @@ func getTTSRequestInput(c *gin.Context) (TTSRequestInput, error) {
 	return ttsRequestInput, nil
 }
 
+func piperToWavStream(c *gin.Context, ttsRequestInput TTSRequestInput, voices *Voices) {
+	if ttsRequestInput.Text == "" {
+		c.String(http.StatusBadRequest, "text query parameter is required")
+		return
+	}
+
+	voice, err := getVoiceDetails(voices, ttsRequestInput.Voice)
+	if err != nil {
+		c.String(http.StatusBadRequest, "Voice not found")
+		return
+	}
+	speaker, ok := voice.SpeakerIdMap[ttsRequestInput.Speaker]
+	if !ok {
+		speaker = 0
+	}
+
+	sampleRate := int(float64(voice.Audio.SampleRate) * ttsRequestInput.Speed)
+	channels := 1
+	bitsPerSample := 16
+
+	err = writeWavStreamHttpHeaders(c, sampleRate, channels, bitsPerSample)
+	if err != nil {
+		log.Printf("error writting http headers: %v", err)
+		c.String(http.StatusInternalServerError, "Error streaming TTS")
+		return
+	}
+
+	err = streamTTS(c, ttsRequestInput.Voice, speaker, ttsRequestInput.Text, int(sampleRate), channels, bitsPerSample)
+	if err != nil {
+		log.Printf("Error streaming TTS: %v", err)
+		c.String(http.StatusInternalServerError, "Error streaming TTS")
+	}
+}
+
 func ttsHandler(voices *Voices) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ttsRequestInput, err := getTTSRequestInput(c)
@@ -91,37 +168,6 @@ func ttsHandler(voices *Voices) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request, JSON body required"})
 			return
 		}
-
-		if ttsRequestInput.Text == "" {
-			c.String(http.StatusBadRequest, "text query parameter is required")
-			return
-		}
-
-		voice, err := getVoiceDetails(voices, ttsRequestInput.Voice)
-		if err != nil {
-			c.String(http.StatusBadRequest, "Voice not found")
-			return
-		}
-		speaker, ok := voice.SpeakerIdMap[ttsRequestInput.Speaker]
-		if !ok {
-			speaker = 0
-		}
-
-		sampleRate := int(float64(voice.Audio.SampleRate) * ttsRequestInput.Speed)
-		channels := 1
-		bitsPerSample := 16
-
-		err = writeWavStreamHttpHeaders(c, sampleRate, channels, bitsPerSample)
-		if err != nil {
-			log.Printf("error writting http headers: %v", err)
-			c.String(http.StatusInternalServerError, "Error streaming TTS")
-			return
-		}
-
-		err = streamTTS(c, ttsRequestInput.Voice, speaker, ttsRequestInput.Text, int(sampleRate), channels, bitsPerSample)
-		if err != nil {
-			log.Printf("Error streaming TTS: %v", err)
-			c.String(http.StatusInternalServerError, "Error streaming TTS")
-		}
+		piperToWavStream(c, ttsRequestInput, voices)
 	}
 }
