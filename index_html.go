@@ -82,7 +82,7 @@ const INDEX_HTML = `
         <button type="submit">Speak!</button>
         
         <div class="form-group" style="margin-top: 20px;">
-            <audio id="audioPlayer" controls style="width: 100%; display: none;"></audio>
+            <audio id="audioPlayer" controls style="width: 100%; display: block;"></audio>
         </div>
     </form>
 
@@ -173,7 +173,7 @@ const INDEX_HTML = `
             };
 
             try {
-                const response = await fetch(` + "`${window.location.pathname}api/tts`" + `, {
+                const response = await fetch(` + "`${window.location.pathname}api/tts/stream`" + `, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -185,15 +185,11 @@ const INDEX_HTML = `
                     throw new Error('Synthesis failed');
                 }
 
-                const audioBlob = await response.blob();
-                const audioUrl = URL.createObjectURL(audioBlob);
+                const { streamId } = await response.json();
                 const audioElement = document.getElementById('audioPlayer');
                 audioElement.style.display = 'block';
-                audioElement.src = audioUrl;
+                audioElement.src = ` + "`${window.location.pathname}api/tts/stream/${streamId}`" + `;
                 await audioElement.play();
-                audioElement.onended = () => {
-                    URL.revokeObjectURL(audioUrl);
-                };
             } catch (error) {
                 console.error('Error during synthesis request:', error);
             }
