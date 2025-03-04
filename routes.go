@@ -55,7 +55,7 @@ func getTTSStrParameter(c *gin.Context, postValue string, key string, defaultVal
 	return value
 }
 
-func ttsGetStreamHandler(voices *Voices, r map[string]TTSRequest) gin.HandlerFunc {
+func ttsGetStreamHandler(voices *Voices, r map[string]TTSRequestStore) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		streamId := c.Param("streamId")
 		ttsRequest, ok := r[streamId]
@@ -72,7 +72,7 @@ func ttsGetStreamHandler(voices *Voices, r map[string]TTSRequest) gin.HandlerFun
 	}
 }
 
-func ttsPostStreamHandler(r map[string]TTSRequest) gin.HandlerFunc {
+func ttsPostStreamHandler(r map[string]TTSRequestStore) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		streamId := uuid.New().String()
 
@@ -85,7 +85,7 @@ func ttsPostStreamHandler(r map[string]TTSRequest) gin.HandlerFunc {
 			c.String(http.StatusBadRequest, "text query parameter is required")
 			return
 		}
-		r[streamId] = TTSRequest{
+		r[streamId] = TTSRequestStore{
 			Request: ttsRequestInput,
 			Expires: time.Now().Add(time.Duration(STREAM_EXPIRATION_MINUTES) * time.Minute),
 		}

@@ -24,7 +24,7 @@ func main() {
 
 	voices := getAvailableVoices(VOICES_JSON_PATH)
 	loadVoicesDetails()
-	requestsMap := initTTSRequestsMap()
+	requestsMap := initTTSRequestsStore()
 
 	r.GET("/", homeHandler)
 	r.GET("/api/voices", voicesHandler(&voices))
