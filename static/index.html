@@ -49,6 +49,39 @@
         .copy-button:hover {
             background-color: #007BB5;
         }
+        .audio-container {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            background-color: #f9f9f9;
+        }
+        .audio-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .audio-player {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        .playback-speed {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .playback-speed label {
+            margin-bottom: 0;
+            white-space: nowrap;
+            font-size: 14px;
+        }
+        .playback-speed select {
+            width: auto;
+            padding: 5px;
+            border-radius: 4px;
+            font-size: 14px;
+            background-color: white;
+        }
     </style>
 </head>
 <body>
@@ -77,15 +110,28 @@
         </div>
         
         <button type="submit">Speak!</button>
-        
-        <div class="form-group" style="margin-top: 20px;">
-            <audio id="audioPlayer" controls style="width: 100%; display: block;"></audio>
+
+        <div class="audio-container">
+            <div class="audio-controls">
+                <audio id="audioPlayer" class="audio-player" controls></audio>
+                <div class="playback-speed">
+                    <label for="playbackSpeed">Speed:</label>
+                    <select id="playbackSpeed">
+                        <option value="0.5">0.5x</option>
+                        <option value="0.75">0.75x</option>
+                        <option value="1" selected>1x</option>
+                        <option value="1.25">1.25x</option>
+                        <option value="1.5">1.5x</option>
+                        <option value="2">2x</option>
+                    </select>
+                </div>
+            </div>
         </div>
     </form>
 
     <script>
         let voices = [];
-        
+
         async function fetchVoices() {
             try {
                 const response = await fetch(`${window.location.pathname}api/voices`);
@@ -129,9 +175,7 @@
             speakerSelect.innerHTML = '';
             const voice = voices.find(v => v.key === selectedVoice);
             if (voice && voice.speaker_id_map) {
-				console.log(voice.speaker_id_map);
                 Object.keys(voice.speaker_id_map).forEach(speaker => {
-				console.log(speaker);
                     const option = new Option(speaker, speaker);
                     speakerSelect.add(option);
                 });
@@ -159,6 +203,14 @@
         document.getElementById('languageSelect').addEventListener('change', updateVoiceSelect);
         document.getElementById('voiceSelect').addEventListener('change', updateSpeakerSelect);
 
+        document.getElementById('playbackSpeed').addEventListener('change', setPlaybackSpeed);
+
+        function setPlaybackSpeed() {
+            const audio = document.getElementById('audioPlayer');
+            const speedSelector = document.getElementById('playbackSpeed');
+            audio.playbackRate = parseFloat(speedSelector.value);
+        }
+
         document.getElementById('ttsForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -184,8 +236,9 @@
 
                 const { streamId } = await response.json();
                 const audioElement = document.getElementById('audioPlayer');
-                audioElement.style.display = 'block';
                 audioElement.src = `${window.location.pathname}api/tts/stream/${streamId}`;
+                const speedSelector = document.getElementById('playbackSpeed');
+                audioElement.playbackRate = parseFloat(speedSelector.value);
                 await audioElement.play();
             } catch (error) {
                 console.error('Error during synthesis request:', error);
