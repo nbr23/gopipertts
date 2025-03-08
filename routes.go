@@ -1,6 +1,7 @@
 package main
 
 import (
+	"embed"
 	"log"
 	"net/http"
 	"strconv"
@@ -10,6 +11,9 @@ import (
 	"github.com/google/uuid"
 )
 
+//go:embed static/index.html
+var staticFiles embed.FS
+
 type TTSRequestInput struct {
 	Text    string  `json:"text"`
 	Voice   string  `json:"voice"`
@@ -18,9 +22,14 @@ type TTSRequestInput struct {
 }
 
 func homeHandler(c *gin.Context) {
-	html := INDEX_HTML
+	html, err := staticFiles.ReadFile("static/index.html")
+	if err != nil {
+		log.Printf("Error reading index.html: %v", err)
+		c.String(http.StatusInternalServerError, "Error reading index.html")
+		return
+	}
 	c.Header("Content-Type", "text/html")
-	c.String(http.StatusOK, html)
+	c.String(http.StatusOK, string(html))
 }
 
 func voicesHandler(voices *Voices) gin.HandlerFunc {

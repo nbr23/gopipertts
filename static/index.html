@@ -1,6 +1,3 @@
-package main
-
-const INDEX_HTML = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -91,7 +88,7 @@ const INDEX_HTML = `
         
         async function fetchVoices() {
             try {
-                const response = await fetch(` + "`${window.location.pathname}api/voices`" + `);
+                const response = await fetch(`${window.location.pathname}api/voices`);
                 voices = Object.values(await response.json());
                 initializeForm();
             } catch (error) {
@@ -173,7 +170,7 @@ const INDEX_HTML = `
             };
 
             try {
-                const response = await fetch(` + "`${window.location.pathname}api/tts/stream`" + `, {
+                const response = await fetch(`${window.location.pathname}api/tts/stream`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -188,7 +185,7 @@ const INDEX_HTML = `
                 const { streamId } = await response.json();
                 const audioElement = document.getElementById('audioPlayer');
                 audioElement.style.display = 'block';
-                audioElement.src = ` + "`${window.location.pathname}api/tts/stream/${streamId}`" + `;
+                audioElement.src = `${window.location.pathname}api/tts/stream/${streamId}`;
                 await audioElement.play();
             } catch (error) {
                 console.error('Error during synthesis request:', error);
@@ -198,4 +195,3 @@ const INDEX_HTML = `
     </script>
 </body>
 </html>
-`

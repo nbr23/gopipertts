@@ -9,6 +9,7 @@ WORKDIR /app
 COPY go.* .
 RUN go mod download
 COPY *.go .
+COPY static static
 
 RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} GOARM=${TARGETVARIANT} go build -trimpath -o gopipertts
 
