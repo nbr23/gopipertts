@@ -110,6 +110,7 @@
         </div>
         
         <button type="submit">Speak!</button>
+        <button type="button" id="downloadButton" disabled hidden>Download Audio</button>
 
         <div class="audio-container">
             <div class="audio-controls">
@@ -236,10 +237,22 @@
 
                 const { streamId } = await response.json();
                 const audioElement = document.getElementById('audioPlayer');
-                audioElement.src = `${window.location.pathname}api/tts/stream/${streamId}`;
+                const audioUrl = `${window.location.pathname}api/tts/stream/${streamId}`;
+                audioElement.src = audioUrl;
+
                 const speedSelector = document.getElementById('playbackSpeed');
                 audioElement.playbackRate = parseFloat(speedSelector.value);
                 await audioElement.play();
+
+                const downloadButton = document.getElementById('downloadButton');
+                downloadButton.disabled = false;
+                downloadButton.hidden = false;
+                downloadButton.onclick = () => {
+                    const a = document.createElement('a');
+                    a.href = audioUrl;
+                    a.download = `${streamId}.wav`;
+                    a.click();
+                };
             } catch (error) {
                 console.error('Error during synthesis request:', error);
             }
