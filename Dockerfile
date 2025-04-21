@@ -30,6 +30,9 @@ ARG TARGETOS
 ARG TARGETVARIANT
 ENV VOICES_PATH="/voices"
 ENV VOICES_JSON_PATH="/app/voices.json"
+ENV PORT="8080"
+
+HEALTHCHECK CMD curl http://localhost:${PORT}/api/healthcheck || exit 1
 
 WORKDIR /app
 VOLUME ["$VOICES_PATH"]
@@ -37,6 +40,7 @@ VOLUME ["$VOICES_PATH"]
 ENV GIN_MODE=release
 
 RUN apt update && apt install -y --no-install-recommends \
+    curl \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 

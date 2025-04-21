@@ -27,6 +27,11 @@ func main() {
 	requestsMap := initTTSRequestsStore()
 
 	r.GET("/", homeHandler)
+	r.GET("/api/healthcheck", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"status": "ok",
+		})
+	})
 	r.GET("/api/voices", voicesHandler(&voices))
 	r.POST("/api/tts", ttsHandler(&voices))
 	r.GET("/api/tts", ttsHandler(&voices))
