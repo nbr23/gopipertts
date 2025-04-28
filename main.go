@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
 	port := getEnv("PORT", "8080")
+	preloadVoices := getEnv("PRELOAD_VOICES", "")
 
 	if os.Getenv("DEBUG") == "" {
 		gin.SetMode(gin.ReleaseMode)
@@ -24,6 +26,7 @@ func main() {
 
 	voices := getAvailableVoices(VOICES_JSON_PATH)
 	loadVoicesDetails()
+	ensureVoices(strings.Split(preloadVoices, ","), &voices)
 	requestsMap := initTTSRequestsStore()
 
 	r.GET("/", homeHandler)

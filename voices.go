@@ -91,6 +91,12 @@ func loadVoicesDetails() {
 	}
 }
 
+func ensureVoices(voiceNames []string, voices *Voices) {
+	for _, voiceName := range voiceNames {
+		getVoiceDetails(voices, voiceName)
+	}
+}
+
 func getVoiceDetails(voices *Voices, voiceName string) (VoiceDetails, error) {
 	voice, ok := DOWNLOADED_VOICES[voiceName]
 	if !ok {
