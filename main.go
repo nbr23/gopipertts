@@ -19,16 +19,14 @@ func main() {
 		gin.SetMode(gin.DebugMode)
 	}
 
-	r := gin.New()
-
-	r.Use(gin.Recovery())
-	r.Use(gin.Logger())
-
 	voices := getAvailableVoices(VOICES_JSON_PATH)
 	loadVoicesDetails()
 	ensureVoices(strings.Split(preloadVoices, ","), &voices)
 	requestsMap := initTTSRequestsStore()
 
+	r := gin.New()
+	r.Use(gin.Recovery())
+	r.Use(gin.Logger())
 	r.GET("/", homeHandler)
 	r.GET("/api/healthcheck", func(c *gin.Context) {
 		c.JSON(200, gin.H{

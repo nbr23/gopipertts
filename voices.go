@@ -92,9 +92,11 @@ func loadVoicesDetails() {
 }
 
 func ensureVoices(voiceNames []string, voices *Voices) {
+	log.Println("Ensuring preloaded voices are downloaded")
 	for _, voiceName := range voiceNames {
 		getVoiceDetails(voices, voiceName)
 	}
+	log.Println("All Preloaded are downloaded")
 }
 
 func getVoiceDetails(voices *Voices, voiceName string) (VoiceDetails, error) {
@@ -165,7 +167,7 @@ func downloadVoiceFiles(voices *Voices, voiceName string) error {
 		}
 
 		url := fmt.Sprintf("%s/%s", VOICES_REPO_BASE_URL, fileName)
-		log.Println("Downloading", url, "to", filePath)
+		log.Printf("Downloading '%s' to '%s'\n", url, filePath)
 
 		out, err := os.Create(filePath)
 		if err != nil {
@@ -184,7 +186,7 @@ func downloadVoiceFiles(voices *Voices, voiceName string) error {
 		if err != nil {
 			return err
 		}
-		log.Println("Downloaded ", url, " to ", filePath)
+		log.Printf("Downloaded '%s' to '%s'\n", url, filePath)
 	}
 	voiceDetails, err := parseVoiceDetails(fmt.Sprintf("%s/%s.onnx.json", VOICES_PATH, voiceName))
 	if err != nil {
