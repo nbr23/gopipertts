@@ -26,13 +26,13 @@ func main() {
 
 	r := gin.New()
 	r.Use(gin.Recovery())
-	r.Use(gin.Logger())
-	r.GET("/", homeHandler)
 	r.GET("/api/healthcheck", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"status": "ok",
 		})
 	})
+	r.Use(gin.Logger())
+	r.GET("/", homeHandler)
 	r.GET("/api/voices", voicesHandler(&voices))
 	r.POST("/api/tts", ttsHandler(&voices))
 	r.GET("/api/tts", ttsHandler(&voices))
