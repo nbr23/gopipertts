@@ -41,7 +41,6 @@ func voicesHandler(voices *Voices) gin.HandlerFunc {
 func writeWavStreamHttpHeaders(c *gin.Context, sampleRate int, channels int, bitsPerSample int) error {
 	c.Header("Content-Type", "audio/wav")
 	c.Header("Transfer-Encoding", "chunked")
-	c.Header("Cache-Control", "no-cache, no-store, must-revalidate")
 	c.Header("Connection", "keep-alive")
 	c.Writer.WriteHeader(http.StatusOK)
 
