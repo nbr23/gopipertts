@@ -56,3 +56,14 @@ curl 'http://localhost:8080/api/tts?speed=1.1&voice=en_US-amy-low&text=Happy%20t
 ```
 
 Leverages [piper](https://github.com/rhasspy/piper) for TTS and voices from [rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices/tree/main)
+
+## Environment Variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `VOICES_PATH` | `/voices` | Path to the voices directory |
+| `VOICES_JSON_PATH` | `/app/voices.json` | Path to the voices metadata JSON file |
+| `STREAM_EXPIRATION_MINUTES` | `15` | How long to cache audio streams |
+| `PRELOAD_VOICES` | | Comma-separated list of voices to preload on startup |
+| `LOG_INPUT` | | When set, prints TTS input text to stdout before synthesis |
+| `PORT` | `8080` | HTTP port to listen on |
