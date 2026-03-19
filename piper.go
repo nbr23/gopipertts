@@ -84,6 +84,9 @@ func writeInputToPiper(stdin io.WriteCloser, text string) error {
 }
 
 func streamTTS(c *gin.Context, voice string, speaker int, text string, sampleRate int, channels int, bitsPerSample int) error {
+	if logInput {
+		fmt.Println(text)
+	}
 	cmd := buildPiperCmd(voice, speaker)
 	log.Println("running piper command:", cmd)
 

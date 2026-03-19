@@ -9,6 +9,7 @@ import (
 var VOICES_PATH = getEnv("VOICES_PATH", "/voices")
 var VOICES_JSON_PATH = getEnv("VOICES_JSON_PATH", "/app/voices.json")
 var STREAM_EXPIRATION_MINUTES = getIntEnv("STREAM_EXPIRATION_MINUTES", "15")
+var logInput = os.Getenv("LOG_INPUT") != ""
 
 const VOICES_REPO_BASE_URL = "https://huggingface.co/rhasspy/piper-voices/resolve/main"
 
