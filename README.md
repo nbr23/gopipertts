@@ -22,7 +22,7 @@ You can then navigate to `http://localhost:8080/` to access the webui and start 
 
 ### Process text into speech
 
-`/api/tts` will convert the text passed into a wav file.
+`/api/tts` will convert the text passed into an audio file. The output format depends on the `outputFormat` parameter (`wav` by default, `mp3` if specified).
 This endpoint accepts POST and GET requests.
 
 POST requests expect a json body like the following:
@@ -31,11 +31,12 @@ POST requests expect a json body like the following:
     "text": "Hello World",
     "speed": 1.0,
     "voice": "en_US-amy-low",
-    "speaker": ""               // only available for select voices
+    "speaker": "",              // only available for select voices
+    "outputFormat": "wav"       // also accepts "mp3" (requires ffmpeg)
 }
 ```
 
-GET requests expect the parameters `text` and optionally `speed`, `voice` and `speaker` to be passed as url query parameters.
+GET requests expect the parameters `text` and optionally `speed`, `voice`, `speaker` and `outputFormat` to be passed as url query parameters.
 
 Some usage examples:
 
@@ -53,6 +54,10 @@ curl -X POST -H "Content-Type: application/json" -d '{"text": "happy text to spe
 
 ```bash
 curl 'http://localhost:8080/api/tts?speed=1.1&voice=en_US-amy-low&text=Happy%20text%20to%20speeching' | mpv -
+```
+
+```bash
+curl -X POST -H "Content-Type: application/json" -d '{"text": "happy text to speaching!", "outputFormat": "mp3"}' 'http://localhost:8080/api/tts' | mpv -
 ```
 
 Leverages [piper](https://github.com/rhasspy/piper) for TTS and voices from [rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices/tree/main)
