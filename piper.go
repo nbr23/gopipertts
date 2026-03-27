@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"os"
 	"os/exec"
 	"strconv"
@@ -80,6 +81,74 @@ func writeInputToPiper(stdin io.WriteCloser, text string) error {
 		return fmt.Errorf("failed writing to piper stdin: %v", err)
 	}
 
+	return nil
+}
+
+func buildFfmpegCmd(sampleRate int) *exec.Cmd {
+	return exec.Command("ffmpeg",
+		"-f", "s16le",
+		"-ar", strconv.Itoa(sampleRate),
+		"-ac", "1",
+		"-i", "pipe:0",
+		"-f", "mp3",
+		"-codec:a", "libmp3lame",
+		"pipe:1",
+	)
+}
+
+func streamTTSAsMp3(c *gin.Context, voice string, speaker int, text string, sampleRate int) error {
+	if logInput {
+		fmt.Println(text)
+	}
+	piperCmd := buildPiperCmd(voice, speaker)
+	ffmpegCmd := buildFfmpegCmd(sampleRate)
+
+	piperStdout, err := piperCmd.StdoutPipe()
+	if err != nil {
+		return err
+	}
+	ffmpegCmd.Stdin = piperStdout
+
+	ffmpegStdout, err := ffmpegCmd.StdoutPipe()
+	if err != nil {
+		return err
+	}
+
+	piperCmd.Stderr = os.Stderr
+	ffmpegCmd.Stderr = os.Stderr
+
+	piperStdin, err := piperCmd.StdinPipe()
+	if err != nil {
+		return err
+	}
+
+	if err := ffmpegCmd.Start(); err != nil {
+		return fmt.Errorf("failed to start ffmpeg: %v", err)
+	}
+	if err := piperCmd.Start(); err != nil {
+		ffmpegCmd.Process.Kill()
+		return fmt.Errorf("failed to start piper: %v", err)
+	}
+
+	if err := writeInputToPiper(piperStdin, text); err != nil {
+		piperStdin.Close()
+		piperCmd.Process.Kill()
+		ffmpegCmd.Process.Kill()
+		return err
+	}
+	piperStdin.Close()
+
+	c.Header("Content-Type", "audio/mpeg")
+	c.Header("Transfer-Encoding", "chunked")
+	c.Header("Connection", "keep-alive")
+	c.Writer.WriteHeader(http.StatusOK)
+
+	streamWavData(c, ffmpegStdout)
+
+	piperCmd.Process.Kill()
+	piperCmd.Wait()
+	ffmpegCmd.Process.Kill()
+	ffmpegCmd.Wait()
 	return nil
 }
 

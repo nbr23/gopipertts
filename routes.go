@@ -15,10 +15,11 @@ import (
 var staticFiles embed.FS
 
 type TTSRequestInput struct {
-	Text    string  `json:"text"`
-	Voice   string  `json:"voice"`
-	Speaker string  `json:"speaker"`
-	Speed   float64 `json:"speed"`
+	Text         string  `json:"text"`
+	Voice        string  `json:"voice"`
+	Speaker      string  `json:"speaker"`
+	Speed        float64 `json:"speed"`
+	OutputFormat string  `json:"outputFormat"`
 }
 
 func homeHandler(c *gin.Context) {
@@ -76,7 +77,7 @@ func ttsGetStreamHandler(voices *Voices, r map[string]TTSRequestStore) gin.Handl
 			c.String(http.StatusNotFound, "Stream not found")
 			return
 		}
-		piperToWavStream(c, ttsRequest.Request, voices)
+		piperToAudioStream(c, ttsRequest.Request, voices)
 	}
 }
 
@@ -91,6 +92,10 @@ func ttsPostStreamHandler(r map[string]TTSRequestStore) gin.HandlerFunc {
 
 		if ttsRequestInput.Text == "" {
 			c.String(http.StatusBadRequest, "text query parameter is required")
+			return
+		}
+		if ttsRequestInput.OutputFormat == "mp3" {
+			c.String(http.StatusBadRequest, "outputFormat 'mp3' is not supported on stream endpoints")
 			return
 		}
 		r[streamId] = TTSRequestStore{
@@ -131,13 +136,19 @@ func getTTSRequestInput(c *gin.Context) (TTSRequestInput, error) {
 	ttsRequestInput.Speaker = getTTSStrParameter(c, ttsRequestInput.Speaker, "speaker", "")
 	ttsRequestInput.Speed = getTTSFloatParameter(c, ttsRequestInput.Speed, "speed", 1.0)
 	ttsRequestInput.Text = getTTSStrParameter(c, ttsRequestInput.Text, "text", "")
+	ttsRequestInput.OutputFormat = getTTSStrParameter(c, ttsRequestInput.OutputFormat, "outputFormat", "wav")
 
 	return ttsRequestInput, nil
 }
 
-func piperToWavStream(c *gin.Context, ttsRequestInput TTSRequestInput, voices *Voices) {
+func piperToAudioStream(c *gin.Context, ttsRequestInput TTSRequestInput, voices *Voices) {
 	if ttsRequestInput.Text == "" {
 		c.String(http.StatusBadRequest, "text query parameter is required")
+		return
+	}
+
+	if ttsRequestInput.OutputFormat != "wav" && ttsRequestInput.OutputFormat != "mp3" {
+		c.String(http.StatusBadRequest, "invalid outputFormat, must be 'wav' or 'mp3'")
 		return
 	}
 
@@ -154,6 +165,13 @@ func piperToWavStream(c *gin.Context, ttsRequestInput TTSRequestInput, voices *V
 	sampleRate := int(float64(voice.Audio.SampleRate) * ttsRequestInput.Speed)
 	channels := 1
 	bitsPerSample := 16
+
+	if ttsRequestInput.OutputFormat == "mp3" {
+		if err := streamTTSAsMp3(c, ttsRequestInput.Voice, speaker, ttsRequestInput.Text, sampleRate); err != nil {
+			log.Printf("Error streaming MP3 TTS: %v", err)
+		}
+		return
+	}
 
 	err = writeWavStreamHttpHeaders(c, sampleRate, channels, bitsPerSample)
 	if err != nil {
@@ -176,6 +194,6 @@ func ttsHandler(voices *Voices) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request, JSON body required"})
 			return
 		}
-		piperToWavStream(c, ttsRequestInput, voices)
+		piperToAudioStream(c, ttsRequestInput, voices)
 	}
 }

@@ -42,6 +42,7 @@ ENV GIN_MODE=release
 RUN apt update && apt install -y --no-install-recommends \
     curl \
     ca-certificates \
+    ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=piper /piper /usr/share
