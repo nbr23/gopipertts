@@ -209,9 +209,19 @@
             });
         }
 
-        document.getElementById('languageSelect').addEventListener('change', updateVoiceSelect);
-        document.getElementById('voiceSelect').addEventListener('change', updateSpeakerSelect);
+        function clearDownload() {
+            const downloadButton = document.getElementById('downloadButton');
+            downloadButton.disabled = true;
+            downloadButton.hidden = true;
+        }
 
+        document.getElementById('languageSelect').addEventListener('change', updateVoiceSelect);
+        document.getElementById('languageSelect').addEventListener('change', clearDownload);
+        document.getElementById('voiceSelect').addEventListener('change', updateSpeakerSelect);
+        document.getElementById('voiceSelect').addEventListener('change', clearDownload);
+        document.getElementById('speakerSelect').addEventListener('change', clearDownload);
+        document.getElementById('textInput').addEventListener('input', clearDownload);
+        document.getElementById('formatSelect').addEventListener('change', clearDownload);
         document.getElementById('playbackSpeed').addEventListener('change', setPlaybackSpeed);
 
         function setPlaybackSpeed() {
@@ -264,12 +274,13 @@
                 await audioElement.play();
 
                 const downloadButton = document.getElementById('downloadButton');
+                const slug = formData.text.trim().split(/\s+/).slice(0, 4).join('-').toLowerCase().replace(/[^a-z0-9-]/g, '');
                 downloadButton.disabled = false;
                 downloadButton.hidden = false;
                 downloadButton.onclick = () => {
                     const a = document.createElement('a');
                     a.href = audioUrl;
-                    a.download = `tts.${format}`;
+                    a.download = `${slug}.${format}`;
                     a.click();
                 };
             } catch (error) {
