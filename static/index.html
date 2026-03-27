@@ -108,7 +108,15 @@
             <select id="speakerSelect"></select>
             <button type="button" class="copy-button" onclick="copySpeaker()">Copy</button>
         </div>
-        
+
+        <label for="formatSelect">Format:</label>
+        <div class="form-group">
+            <select id="formatSelect">
+                <option value="wav">WAV</option>
+                <option value="mp3">MP3</option>
+            </select>
+        </div>
+
         <button type="submit">Speak!</button>
         <button type="button" id="downloadButton" disabled hidden>Download Audio</button>
 
@@ -215,29 +223,40 @@
         document.getElementById('ttsForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
+            const format = document.getElementById('formatSelect').value;
             const formData = {
                 text: document.getElementById('textInput').value,
-                language: document.getElementById('languageSelect').value,
                 voice: document.getElementById('voiceSelect').value,
-                speaker: document.getElementById('speakerSelect').value || null
+                speaker: document.getElementById('speakerSelect').value || null,
+                outputFormat: format
             };
 
             try {
-                const response = await fetch(`${window.location.pathname}api/tts/stream`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(formData)
-                });
+                let audioUrl;
+                let blobUrl;
 
-                if (!response.ok) {
-                    throw new Error('Synthesis failed');
+                if (format === 'mp3') {
+                    const response = await fetch(`${window.location.pathname}api/tts`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(formData)
+                    });
+                    if (!response.ok) throw new Error('Synthesis failed');
+                    const blob = await response.blob();
+                    blobUrl = URL.createObjectURL(blob);
+                    audioUrl = blobUrl;
+                } else {
+                    const response = await fetch(`${window.location.pathname}api/tts/stream`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(formData)
+                    });
+                    if (!response.ok) throw new Error('Synthesis failed');
+                    const { streamId } = await response.json();
+                    audioUrl = `${window.location.pathname}api/tts/stream/${streamId}`;
                 }
 
-                const { streamId } = await response.json();
                 const audioElement = document.getElementById('audioPlayer');
-                const audioUrl = `${window.location.pathname}api/tts/stream/${streamId}`;
                 audioElement.src = audioUrl;
 
                 const speedSelector = document.getElementById('playbackSpeed');
@@ -250,7 +269,7 @@
                 downloadButton.onclick = () => {
                     const a = document.createElement('a');
                     a.href = audioUrl;
-                    a.download = `${streamId}.wav`;
+                    a.download = `tts.${format}`;
                     a.click();
                 };
             } catch (error) {
