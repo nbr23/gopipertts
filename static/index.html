@@ -117,6 +117,11 @@
             </select>
         </div>
 
+        <label for="streamToggle">Stream audio:</label>
+        <div class="form-group">
+            <input type="checkbox" id="streamToggle" checked>
+        </div>
+
         <button type="submit">Speak!</button>
         <button type="button" id="downloadButton" disabled hidden>Download Audio</button>
 
@@ -221,7 +226,13 @@
         document.getElementById('voiceSelect').addEventListener('change', clearDownload);
         document.getElementById('speakerSelect').addEventListener('change', clearDownload);
         document.getElementById('textInput').addEventListener('input', clearDownload);
-        document.getElementById('formatSelect').addEventListener('change', clearDownload);
+        document.getElementById('formatSelect').addEventListener('change', () => {
+            const format = document.getElementById('formatSelect').value;
+            const streamToggle = document.getElementById('streamToggle');
+            streamToggle.disabled = format === 'mp3';
+            if (format === 'mp3') streamToggle.checked = false;
+            clearDownload();
+        });
         document.getElementById('playbackSpeed').addEventListener('change', setPlaybackSpeed);
 
         function setPlaybackSpeed() {
@@ -243,19 +254,9 @@
 
             try {
                 let audioUrl;
-                let blobUrl;
 
-                if (format === 'mp3') {
-                    const response = await fetch(`${window.location.pathname}api/tts`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(formData)
-                    });
-                    if (!response.ok) throw new Error('Synthesis failed');
-                    const blob = await response.blob();
-                    blobUrl = URL.createObjectURL(blob);
-                    audioUrl = blobUrl;
-                } else {
+                const streaming = document.getElementById('streamToggle').checked;
+                if (streaming) {
                     const response = await fetch(`${window.location.pathname}api/tts/stream`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -264,6 +265,15 @@
                     if (!response.ok) throw new Error('Synthesis failed');
                     const { streamId } = await response.json();
                     audioUrl = `${window.location.pathname}api/tts/stream/${streamId}`;
+                } else {
+                    const response = await fetch(`${window.location.pathname}api/tts`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(formData)
+                    });
+                    if (!response.ok) throw new Error('Synthesis failed');
+                    const blob = await response.blob();
+                    audioUrl = URL.createObjectURL(blob);
                 }
 
                 const audioElement = document.getElementById('audioPlayer');
