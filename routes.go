@@ -64,16 +64,16 @@ func getTTSStrParameter(c *gin.Context, postValue string, key string, defaultVal
 	return value
 }
 
-func ttsGetStreamHandler(voices *Voices, r map[string]TTSRequestStore) gin.HandlerFunc {
+func ttsGetStreamHandler(voices *Voices, r *TTSRequestsStore) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		streamId := c.Param("streamId")
-		ttsRequest, ok := r[streamId]
+		ttsRequest, ok := r.get(streamId)
 		if !ok {
 			c.String(http.StatusNotFound, "Stream not found")
 			return
 		}
 		if ttsRequest.Expires.Before(time.Now()) {
-			delete(r, streamId)
+			r.delete(streamId)
 			c.String(http.StatusNotFound, "Stream not found")
 			return
 		}
@@ -81,13 +81,14 @@ func ttsGetStreamHandler(voices *Voices, r map[string]TTSRequestStore) gin.Handl
 	}
 }
 
-func ttsPostStreamHandler(r map[string]TTSRequestStore) gin.HandlerFunc {
+func ttsPostStreamHandler(r *TTSRequestsStore) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		streamId := uuid.New().String()
 
 		ttsRequestInput, err := getTTSRequestInput(c)
 		if err != nil {
 			c.String(http.StatusBadRequest, "Invalid request")
+			return
 		}
 
 		if ttsRequestInput.Text == "" {
@@ -98,13 +99,14 @@ func ttsPostStreamHandler(r map[string]TTSRequestStore) gin.HandlerFunc {
 			c.String(http.StatusBadRequest, "outputFormat 'mp3' is not supported on stream endpoints")
 			return
 		}
-		r[streamId] = TTSRequestStore{
+		entry := TTSRequestStore{
 			Request: ttsRequestInput,
 			Expires: time.Now().Add(time.Duration(STREAM_EXPIRATION_MINUTES) * time.Minute),
 		}
+		r.set(streamId, entry)
 		c.JSON(http.StatusOK, gin.H{
 			"streamId": streamId,
-			"expires":  r[streamId].Expires,
+			"expires":  entry.Expires,
 		})
 	}
 }

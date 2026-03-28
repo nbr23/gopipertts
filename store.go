@@ -1,29 +1,57 @@
 package main
 
-import "time"
+import (
+	"sync"
+	"time"
+)
 
 type TTSRequestStore struct {
 	Request TTSRequestInput
 	Expires time.Time
 }
 
-func expireTTSRequests(r map[string]TTSRequestStore) {
-	for key, value := range r {
-		if value.Expires.Before(time.Now()) {
-			delete(r, key)
+type TTSRequestsStore struct {
+	mu      sync.RWMutex
+	entries map[string]TTSRequestStore
+}
+
+func (s *TTSRequestsStore) set(id string, v TTSRequestStore) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.entries[id] = v
+}
+
+func (s *TTSRequestsStore) get(id string) (TTSRequestStore, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	v, ok := s.entries[id]
+	return v, ok
+}
+
+func (s *TTSRequestsStore) delete(id string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	delete(s.entries, id)
+}
+
+func (s *TTSRequestsStore) expireOld() {
+	now := time.Now()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for key, value := range s.entries {
+		if value.Expires.Before(now) {
+			delete(s.entries, key)
 		}
 	}
 }
 
-func initTTSRequestsStore() map[string]TTSRequestStore {
-	r := make(map[string]TTSRequestStore)
-
+func initTTSRequestsStore() *TTSRequestsStore {
+	s := &TTSRequestsStore{entries: make(map[string]TTSRequestStore)}
 	go func() {
 		for {
-			expireTTSRequests(r)
+			s.expireOld()
 			time.Sleep(15 * time.Minute)
 		}
 	}()
-
-	return r
+	return s
 }

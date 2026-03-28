@@ -189,7 +189,7 @@ func TestWriteWavStreamHttpHeaders_Headers(t *testing.T) {
 }
 
 func TestTTSPostStreamHandler_MissingText(t *testing.T) {
-	r := map[string]TTSRequestStore{}
+	r := initTTSRequestsStore()
 	c, w := newTestContext("POST", "/api/tts/stream", `{"voice":"en_US-amy-low"}`)
 	ttsPostStreamHandler(r)(c)
 	if w.Code != http.StatusBadRequest {
@@ -201,7 +201,7 @@ func TestTTSPostStreamHandler_MissingText(t *testing.T) {
 }
 
 func TestTTSPostStreamHandler_Mp3Rejected(t *testing.T) {
-	r := map[string]TTSRequestStore{}
+	r := initTTSRequestsStore()
 	c, w := newTestContext("POST", "/api/tts/stream", `{"text":"hello","outputFormat":"mp3"}`)
 	ttsPostStreamHandler(r)(c)
 	if w.Code != http.StatusBadRequest {
@@ -213,7 +213,7 @@ func TestTTSPostStreamHandler_Mp3Rejected(t *testing.T) {
 }
 
 func TestTTSPostStreamHandler_ValidRequest(t *testing.T) {
-	r := map[string]TTSRequestStore{}
+	r := initTTSRequestsStore()
 	c, w := newTestContext("POST", "/api/tts/stream", `{"text":"hello"}`)
 	ttsPostStreamHandler(r)(c)
 	if w.Code != http.StatusOK {
@@ -227,13 +227,13 @@ func TestTTSPostStreamHandler_ValidRequest(t *testing.T) {
 	if !ok || streamId == "" {
 		t.Fatalf("expected non-empty streamId, got %v", result["streamId"])
 	}
-	if _, exists := r[streamId]; !exists {
+	if _, exists := r.get(streamId); !exists {
 		t.Fatalf("expected streamId %q in store", streamId)
 	}
 }
 
 func TestTTSPostStreamHandler_StreamIdIsUnique(t *testing.T) {
-	r := map[string]TTSRequestStore{}
+	r := initTTSRequestsStore()
 
 	c1, w1 := newTestContext("POST", "/api/tts/stream", `{"text":"hello"}`)
 	ttsPostStreamHandler(r)(c1)
@@ -254,7 +254,7 @@ func TestTTSPostStreamHandler_StreamIdIsUnique(t *testing.T) {
 
 func TestTTSGetStreamHandler_NotFound(t *testing.T) {
 	voices := Voices{}
-	r := map[string]TTSRequestStore{}
+	r := initTTSRequestsStore()
 	c, w := newTestContext("GET", "/api/tts/stream/unknown-id", "")
 	c.Params = gin.Params{{Key: "streamId", Value: "unknown-id"}}
 	ttsGetStreamHandler(&voices, r)(c)
@@ -268,19 +268,18 @@ func TestTTSGetStreamHandler_NotFound(t *testing.T) {
 
 func TestTTSGetStreamHandler_ExpiredStream(t *testing.T) {
 	voices := Voices{}
-	r := map[string]TTSRequestStore{
-		"expired-id": {
-			Request: TTSRequestInput{Text: "hello"},
-			Expires: time.Now().Add(-1 * time.Second),
-		},
-	}
+	r := initTTSRequestsStore()
+	r.set("expired-id", TTSRequestStore{
+		Request: TTSRequestInput{Text: "hello"},
+		Expires: time.Now().Add(-1 * time.Second),
+	})
 	c, w := newTestContext("GET", "/api/tts/stream/expired-id", "")
 	c.Params = gin.Params{{Key: "streamId", Value: "expired-id"}}
 	ttsGetStreamHandler(&voices, r)(c)
 	if w.Code != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d", w.Code)
 	}
-	if _, exists := r["expired-id"]; exists {
+	if _, exists := r.get("expired-id"); exists {
 		t.Fatal("expected expired entry to be deleted from store")
 	}
 }
