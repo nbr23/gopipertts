@@ -54,7 +54,7 @@ func streamWavData(c *gin.Context, audioData io.Reader) {
 
 func buildPiperCmd(voice string, speaker int) *exec.Cmd {
 	cmdArgs := []string{
-		"/usr/share/piper/piper",
+		PIPER_BINARY,
 		"--model", fmt.Sprintf("%s/%s.onnx", VOICES_PATH, voice),
 		"--config", fmt.Sprintf("%s/%s.onnx.json", VOICES_PATH, voice),
 		"--json-input",
@@ -63,7 +63,7 @@ func buildPiperCmd(voice string, speaker int) *exec.Cmd {
 	if speaker > 0 {
 		cmdArgs = append(cmdArgs, "--speaker-id", strconv.Itoa(speaker))
 	}
-	return exec.Command("/usr/share/piper/piper", cmdArgs...)
+	return exec.Command(PIPER_BINARY, cmdArgs...)
 }
 
 func writeInputToPiper(stdin io.WriteCloser, text string) error {

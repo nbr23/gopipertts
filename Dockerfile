@@ -30,6 +30,7 @@ ARG TARGETOS
 ARG TARGETVARIANT
 ENV VOICES_PATH="/voices"
 ENV VOICES_JSON_PATH="/app/voices.json"
+ENV PIPER_BINARY="/usr/share/piper/piper"
 ENV PORT="8080"
 
 HEALTHCHECK CMD curl http://localhost:${PORT}/api/healthcheck || exit 1
