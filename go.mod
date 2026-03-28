@@ -1,4 +1,4 @@
-module nbr23/gostream
+module nbr23/gopipertts
 
 go 1.24.0
 
