@@ -97,6 +97,9 @@ func buildFfmpegCmd(sampleRate int) *exec.Cmd {
 }
 
 func streamTTSAsMp3(c *gin.Context, voice string, speaker int, text string, sampleRate int) error {
+	if _, ok := DOWNLOADED_VOICES[voice]; !ok {
+		return fmt.Errorf("voice not found: %s", voice)
+	}
 	if logInput {
 		fmt.Println(text)
 	}
@@ -153,6 +156,9 @@ func streamTTSAsMp3(c *gin.Context, voice string, speaker int, text string, samp
 }
 
 func streamTTS(c *gin.Context, voice string, speaker int, text string, sampleRate int, channels int, bitsPerSample int) error {
+	if _, ok := DOWNLOADED_VOICES[voice]; !ok {
+		return fmt.Errorf("voice not found: %s", voice)
+	}
 	if logInput {
 		fmt.Println(text)
 	}
