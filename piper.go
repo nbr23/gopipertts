@@ -9,9 +9,35 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 )
+
+var (
+	processMu   sync.Mutex
+	processMap  = make(map[int]*os.Process)
+)
+
+func trackProcess(p *os.Process) {
+	processMu.Lock()
+	processMap[p.Pid] = p
+	processMu.Unlock()
+}
+
+func untrackProcess(p *os.Process) {
+	processMu.Lock()
+	delete(processMap, p.Pid)
+	processMu.Unlock()
+}
+
+func killAllProcesses() {
+	processMu.Lock()
+	defer processMu.Unlock()
+	for _, p := range processMap {
+		p.Kill()
+	}
+}
 
 func streamWavData(c *gin.Context, audioData io.Reader) {
 	buffer := make([]byte, 4096)
@@ -128,15 +154,27 @@ func streamTTSAsMp3(c *gin.Context, voice string, speaker int, text string, samp
 	if err := ffmpegCmd.Start(); err != nil {
 		return fmt.Errorf("failed to start ffmpeg: %v", err)
 	}
+	trackProcess(ffmpegCmd.Process)
 	if err := piperCmd.Start(); err != nil {
 		ffmpegCmd.Process.Kill()
+		ffmpegCmd.Wait()
+		untrackProcess(ffmpegCmd.Process)
 		return fmt.Errorf("failed to start piper: %v", err)
+	}
+	trackProcess(piperCmd.Process)
+
+	cleanup := func() {
+		piperCmd.Process.Kill()
+		piperCmd.Wait()
+		untrackProcess(piperCmd.Process)
+		ffmpegCmd.Process.Kill()
+		ffmpegCmd.Wait()
+		untrackProcess(ffmpegCmd.Process)
 	}
 
 	if err := writeInputToPiper(piperStdin, text); err != nil {
 		piperStdin.Close()
-		piperCmd.Process.Kill()
-		ffmpegCmd.Process.Kill()
+		cleanup()
 		return err
 	}
 	piperStdin.Close()
@@ -148,10 +186,7 @@ func streamTTSAsMp3(c *gin.Context, voice string, speaker int, text string, samp
 
 	streamWavData(c, ffmpegStdout)
 
-	piperCmd.Process.Kill()
-	piperCmd.Wait()
-	ffmpegCmd.Process.Kill()
-	ffmpegCmd.Wait()
+	cleanup()
 	return nil
 }
 
@@ -180,17 +215,24 @@ func streamTTS(c *gin.Context, voice string, speaker int, text string, sampleRat
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("failed to start piper: %v", err)
 	}
+	trackProcess(cmd.Process)
+
+	cleanup := func() {
+		cmd.Process.Kill()
+		cmd.Wait()
+		untrackProcess(cmd.Process)
+	}
 
 	if err := writeInputToPiper(stdin, text); err != nil {
 		stdin.Close()
 		log.Printf("error writing to piper: %v", err)
+		cleanup()
 		return err
 	}
 	stdin.Close()
 
 	streamWavData(c, stdout)
 
-	cmd.Process.Kill()
-	cmd.Wait()
+	cleanup()
 	return nil
 }

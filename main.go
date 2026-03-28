@@ -1,10 +1,15 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -40,8 +45,30 @@ func main() {
 	r.POST("/api/tts/stream", ttsPostStreamHandler(requestsMap))
 	r.GET("/api/tts/stream/:streamId", ttsGetStreamHandler(&voices, requestsMap))
 
-	fmt.Printf("Listening and serving HTTP on :%s\n", port)
-	if err := r.Run(":" + port); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+	srv := &http.Server{
+		Addr:    ":" + port,
+		Handler: r,
 	}
+
+	go func() {
+		fmt.Printf("Listening and serving HTTP on :%s\n", port)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Failed to start server: %v", err)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	log.Println("Shutting down server...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Printf("Server forced to shutdown: %v", err)
+	}
+
+	killAllProcesses()
+	log.Println("Server exited")
 }
