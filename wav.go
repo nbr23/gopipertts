@@ -6,7 +6,7 @@ func generateWAVHeader(sampleRate, channels, bitsPerSample int) []byte {
 
 	// RIFF chunk
 	copy(header[0:4], []byte("RIFF"))
-	copy(header[4:7], []byte{0xFF, 0xFF, 0xFF, 0xFF}) // Size -1 for streaming
+	copy(header[4:8], []byte{0xFF, 0xFF, 0xFF, 0xFF}) // Size -1 for streaming
 	copy(header[8:12], []byte("WAVE"))
 	copy(header[12:16], []byte("fmt "))
 	// fmt chunk size (16 for PCM)
@@ -42,6 +42,6 @@ func generateWAVHeader(sampleRate, channels, bitsPerSample int) []byte {
 	// data chunk
 	copy(header[36:40], []byte("data"))
 	// data size (unknown for streaming)
-	copy(header[40:43], []byte{0xFF, 0xFF, 0xFF, 0xFF})
+	copy(header[40:44], []byte{0xFF, 0xFF, 0xFF, 0xFF})
 	return header
 }
