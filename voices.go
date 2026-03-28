@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -155,7 +157,7 @@ func downloadVoiceFiles(voices *Voices, voiceName string) error {
 		return fmt.Errorf("Voice not found: %s", voiceName)
 	}
 
-	for fileName, _ := range voice.Files {
+	for fileName, fileInfo := range voice.Files {
 		baseFilename := filepath.Base(fileName)
 		if baseFilename == "MODEL_CARD" {
 			continue
@@ -182,9 +184,13 @@ func downloadVoiceFiles(voices *Voices, voiceName string) error {
 		}
 		defer resp.Body.Close()
 
-		_, err = io.Copy(out, resp.Body)
-		if err != nil {
+		h := md5.New()
+		if _, err = io.Copy(out, io.TeeReader(resp.Body, h)); err != nil {
 			return err
+		}
+		if got := hex.EncodeToString(h.Sum(nil)); got != fileInfo.MD5Digest {
+			os.Remove(filePath)
+			return fmt.Errorf("MD5 mismatch for %s: got %s, want %s", fileName, got, fileInfo.MD5Digest)
 		}
 		log.Printf("Downloaded '%s' to '%s'\n", url, filePath)
 	}
