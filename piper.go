@@ -101,7 +101,7 @@ func streamTTSAsMp3(c *gin.Context, voice string, speaker int, text string, samp
 		return fmt.Errorf("voice not found: %s", voice)
 	}
 	if logInput {
-		fmt.Println(text)
+		fmt.Println(strconv.Quote(text))
 	}
 	piperCmd := buildPiperCmd(voice, speaker)
 	ffmpegCmd := buildFfmpegCmd(sampleRate)
@@ -160,7 +160,7 @@ func streamTTS(c *gin.Context, voice string, speaker int, text string, sampleRat
 		return fmt.Errorf("voice not found: %s", voice)
 	}
 	if logInput {
-		fmt.Println(text)
+		fmt.Println(strconv.Quote(text))
 	}
 	cmd := buildPiperCmd(voice, speaker)
 	log.Println("running piper command:", cmd)
