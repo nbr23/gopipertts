@@ -13,10 +13,11 @@ func main() {
 	port := getEnv("PORT", "8080")
 	preloadVoices := getEnv("PRELOAD_VOICES", "")
 
-	if os.Getenv("DEBUG") == "" {
-		gin.SetMode(gin.ReleaseMode)
-	} else {
+	debug := os.Getenv("DEBUG")
+	if debug == "1" || debug == "true" {
 		gin.SetMode(gin.DebugMode)
+	} else {
+		gin.SetMode(gin.ReleaseMode)
 	}
 
 	voices := getAvailableVoices(VOICES_JSON_PATH)
