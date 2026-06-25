@@ -63,24 +63,6 @@
         }
         .audio-player {
             width: 100%;
-            margin-bottom: 10px;
-        }
-        .playback-speed {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .playback-speed label {
-            margin-bottom: 0;
-            white-space: nowrap;
-            font-size: 14px;
-        }
-        .playback-speed select {
-            width: auto;
-            padding: 5px;
-            border-radius: 4px;
-            font-size: 14px;
-            background-color: white;
         }
     </style>
 </head>
@@ -109,6 +91,18 @@
             <button type="button" class="copy-button" onclick="copySpeaker()">Copy</button>
         </div>
 
+        <label for="speedSelect">Speed:</label>
+        <div class="form-group">
+            <select id="speedSelect">
+                <option value="0.5">0.5x</option>
+                <option value="0.75">0.75x</option>
+                <option value="1" selected>1x</option>
+                <option value="1.25">1.25x</option>
+                <option value="1.5">1.5x</option>
+                <option value="2">2x</option>
+            </select>
+        </div>
+
         <label for="formatSelect">Format:</label>
         <div class="form-group">
             <select id="formatSelect">
@@ -128,17 +122,6 @@
         <div class="audio-container">
             <div class="audio-controls">
                 <audio id="audioPlayer" class="audio-player" controls></audio>
-                <div class="playback-speed">
-                    <label for="playbackSpeed">Speed:</label>
-                    <select id="playbackSpeed">
-                        <option value="0.5">0.5x</option>
-                        <option value="0.75">0.75x</option>
-                        <option value="1" selected>1x</option>
-                        <option value="1.25">1.25x</option>
-                        <option value="1.5">1.5x</option>
-                        <option value="2">2x</option>
-                    </select>
-                </div>
             </div>
         </div>
     </form>
@@ -226,6 +209,7 @@
         document.getElementById('voiceSelect').addEventListener('change', clearDownload);
         document.getElementById('speakerSelect').addEventListener('change', clearDownload);
         document.getElementById('textInput').addEventListener('input', clearDownload);
+        document.getElementById('speedSelect').addEventListener('change', clearDownload);
         document.getElementById('formatSelect').addEventListener('change', () => {
             const format = document.getElementById('formatSelect').value;
             const streamToggle = document.getElementById('streamToggle');
@@ -233,13 +217,6 @@
             if (format === 'mp3') streamToggle.checked = false;
             clearDownload();
         });
-        document.getElementById('playbackSpeed').addEventListener('change', setPlaybackSpeed);
-
-        function setPlaybackSpeed() {
-            const audio = document.getElementById('audioPlayer');
-            const speedSelector = document.getElementById('playbackSpeed');
-            audio.playbackRate = parseFloat(speedSelector.value);
-        }
 
         document.getElementById('ttsForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -249,6 +226,7 @@
                 text: document.getElementById('textInput').value,
                 voice: document.getElementById('voiceSelect').value,
                 speaker: document.getElementById('speakerSelect').value || null,
+                speed: parseFloat(document.getElementById('speedSelect').value),
                 outputFormat: format
             };
 
@@ -278,9 +256,6 @@
 
                 const audioElement = document.getElementById('audioPlayer');
                 audioElement.src = audioUrl;
-
-                const speedSelector = document.getElementById('playbackSpeed');
-                audioElement.playbackRate = parseFloat(speedSelector.value);
                 await audioElement.play();
 
                 const downloadButton = document.getElementById('downloadButton');
