@@ -78,6 +78,16 @@ func streamWavData(c *gin.Context, audioData io.Reader) {
 
 }
 
+// speedToLengthScale converts a playback speed multiplier into piper's
+// length_scale, which is inversely proportional to speed. Non-positive
+// speeds fall back to normal speed.
+func speedToLengthScale(speed float64) float64 {
+	if speed <= 0 {
+		return 1.0
+	}
+	return 1.0 / speed
+}
+
 func buildPiperCmd(voice string, speaker int, lengthScale float64) *exec.Cmd {
 	cmdArgs := []string{
 		PIPER_BINARY,

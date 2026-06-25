@@ -165,10 +165,7 @@ func piperToAudioStream(c *gin.Context, ttsRequestInput TTSRequestInput, voices 
 	}
 
 	sampleRate := voice.Audio.SampleRate
-	lengthScale := 1.0
-	if ttsRequestInput.Speed > 0 {
-		lengthScale = 1.0 / ttsRequestInput.Speed
-	}
+	lengthScale := speedToLengthScale(ttsRequestInput.Speed)
 	channels := 1
 	bitsPerSample := 16
 
