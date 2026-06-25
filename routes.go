@@ -164,12 +164,16 @@ func piperToAudioStream(c *gin.Context, ttsRequestInput TTSRequestInput, voices 
 		speaker = 0
 	}
 
-	sampleRate := int(float64(voice.Audio.SampleRate) * ttsRequestInput.Speed)
+	sampleRate := voice.Audio.SampleRate
+	lengthScale := 1.0
+	if ttsRequestInput.Speed > 0 {
+		lengthScale = 1.0 / ttsRequestInput.Speed
+	}
 	channels := 1
 	bitsPerSample := 16
 
 	if ttsRequestInput.OutputFormat == "mp3" {
-		if err := streamTTSAsMp3(c, ttsRequestInput.Voice, speaker, ttsRequestInput.Text, sampleRate); err != nil {
+		if err := streamTTSAsMp3(c, ttsRequestInput.Voice, speaker, ttsRequestInput.Text, sampleRate, lengthScale); err != nil {
 			log.Printf("Error streaming MP3 TTS: %v", err)
 		}
 		return
@@ -182,7 +186,7 @@ func piperToAudioStream(c *gin.Context, ttsRequestInput TTSRequestInput, voices 
 		return
 	}
 
-	err = streamTTS(c, ttsRequestInput.Voice, speaker, ttsRequestInput.Text, int(sampleRate), channels, bitsPerSample)
+	err = streamTTS(c, ttsRequestInput.Voice, speaker, ttsRequestInput.Text, sampleRate, channels, bitsPerSample, lengthScale)
 	if err != nil {
 		log.Printf("Error streaming TTS: %v", err)
 		c.String(http.StatusInternalServerError, "Error streaming TTS")

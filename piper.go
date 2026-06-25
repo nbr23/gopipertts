@@ -15,8 +15,8 @@ import (
 )
 
 var (
-	processMu   sync.Mutex
-	processMap  = make(map[int]*os.Process)
+	processMu  sync.Mutex
+	processMap = make(map[int]*os.Process)
 )
 
 func trackProcess(p *os.Process) {
@@ -78,7 +78,7 @@ func streamWavData(c *gin.Context, audioData io.Reader) {
 
 }
 
-func buildPiperCmd(voice string, speaker int) *exec.Cmd {
+func buildPiperCmd(voice string, speaker int, lengthScale float64) *exec.Cmd {
 	cmdArgs := []string{
 		PIPER_BINARY,
 		"--model", fmt.Sprintf("%s/%s.onnx", VOICES_PATH, voice),
@@ -88,6 +88,9 @@ func buildPiperCmd(voice string, speaker int) *exec.Cmd {
 	}
 	if speaker > 0 {
 		cmdArgs = append(cmdArgs, "--speaker-id", strconv.Itoa(speaker))
+	}
+	if lengthScale > 0 && lengthScale != 1.0 {
+		cmdArgs = append(cmdArgs, "--length-scale", strconv.FormatFloat(lengthScale, 'f', -1, 64))
 	}
 	return exec.Command(PIPER_BINARY, cmdArgs...)
 }
@@ -122,14 +125,14 @@ func buildFfmpegCmd(sampleRate int) *exec.Cmd {
 	)
 }
 
-func streamTTSAsMp3(c *gin.Context, voice string, speaker int, text string, sampleRate int) error {
+func streamTTSAsMp3(c *gin.Context, voice string, speaker int, text string, sampleRate int, lengthScale float64) error {
 	if _, ok := DOWNLOADED_VOICES[voice]; !ok {
 		return fmt.Errorf("voice not found: %s", voice)
 	}
 	if logInput {
 		fmt.Println(strconv.Quote(text))
 	}
-	piperCmd := buildPiperCmd(voice, speaker)
+	piperCmd := buildPiperCmd(voice, speaker, lengthScale)
 	ffmpegCmd := buildFfmpegCmd(sampleRate)
 
 	piperStdout, err := piperCmd.StdoutPipe()
@@ -190,14 +193,14 @@ func streamTTSAsMp3(c *gin.Context, voice string, speaker int, text string, samp
 	return nil
 }
 
-func streamTTS(c *gin.Context, voice string, speaker int, text string, sampleRate int, channels int, bitsPerSample int) error {
+func streamTTS(c *gin.Context, voice string, speaker int, text string, sampleRate int, channels int, bitsPerSample int, lengthScale float64) error {
 	if _, ok := DOWNLOADED_VOICES[voice]; !ok {
 		return fmt.Errorf("voice not found: %s", voice)
 	}
 	if logInput {
 		fmt.Println(strconv.Quote(text))
 	}
-	cmd := buildPiperCmd(voice, speaker)
+	cmd := buildPiperCmd(voice, speaker, lengthScale)
 	log.Println("running piper command:", cmd)
 
 	cmd.Stderr = os.Stderr
