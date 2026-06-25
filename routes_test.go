@@ -130,6 +130,54 @@ func TestGetTTSRequestInput_POST_JSONBody(t *testing.T) {
 	}
 }
 
+func TestPiperToAudioStream_EmptyText(t *testing.T) {
+	voices := Voices{}
+	c, w := newTestContext("GET", "/", "")
+	piperToAudioStream(c, TTSRequestInput{Text: "", OutputFormat: "wav"}, &voices)
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "text query parameter is required") {
+		t.Fatalf("expected text error, got %q", w.Body.String())
+	}
+}
+
+func TestPiperToAudioStream_InvalidFormat(t *testing.T) {
+	voices := Voices{}
+	c, w := newTestContext("GET", "/", "")
+	piperToAudioStream(c, TTSRequestInput{Text: "hello", OutputFormat: "ogg"}, &voices)
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "invalid outputFormat") {
+		t.Fatalf("expected format error, got %q", w.Body.String())
+	}
+}
+
+func TestPiperToAudioStream_VoiceNotFound(t *testing.T) {
+	voices := Voices{}
+	c, w := newTestContext("GET", "/", "")
+	piperToAudioStream(c, TTSRequestInput{Text: "hello", Voice: "does-not-exist", OutputFormat: "wav"}, &voices)
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "Voice not found") {
+		t.Fatalf("expected voice error, got %q", w.Body.String())
+	}
+}
+
+func TestTTSHandler_InvalidJSON(t *testing.T) {
+	voices := Voices{}
+	c, w := newTestContext("POST", "/api/tts", "{not valid json")
+	ttsHandler(&voices)(c)
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "Invalid request") {
+		t.Fatalf("expected invalid request error, got %q", w.Body.String())
+	}
+}
+
 func TestVoicesHandler_ReturnsJSON(t *testing.T) {
 	voices := Voices{
 		"en_US-amy-low": Voice{Key: "en_US-amy-low", Name: "amy"},

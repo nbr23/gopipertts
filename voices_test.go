@@ -43,3 +43,44 @@ func TestParseVoiceDetails_FileNotFound(t *testing.T) {
 		t.Fatal("expected error for missing file")
 	}
 }
+
+func TestGetVoiceDetails_Cached(t *testing.T) {
+	voices := Voices{}
+	const name = "test-cached-voice"
+	DOWNLOADED_VOICES[name] = VoiceDetails{Audio: VoiceDetailsAudio{SampleRate: 22050}}
+	defer delete(DOWNLOADED_VOICES, name)
+
+	v, err := getVoiceDetails(&voices, name)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if v.Audio.SampleRate != 22050 {
+		t.Fatalf("expected cached sample rate 22050, got %d", v.Audio.SampleRate)
+	}
+}
+
+func TestGetVoiceDetails_NotFound(t *testing.T) {
+	voices := Voices{}
+	_, err := getVoiceDetails(&voices, "missing-voice")
+	if err == nil {
+		t.Fatal("expected error for voice not in list")
+	}
+}
+
+func TestDownloadVoiceFiles_AlreadyDownloaded(t *testing.T) {
+	voices := Voices{}
+	const name = "test-downloaded-voice"
+	DOWNLOADED_VOICES[name] = VoiceDetails{}
+	defer delete(DOWNLOADED_VOICES, name)
+
+	if err := downloadVoiceFiles(&voices, name); err != nil {
+		t.Fatalf("expected nil for already-downloaded voice, got %v", err)
+	}
+}
+
+func TestDownloadVoiceFiles_NotInList(t *testing.T) {
+	voices := Voices{}
+	if err := downloadVoiceFiles(&voices, "missing-voice"); err == nil {
+		t.Fatal("expected error for voice not in list")
+	}
+}
